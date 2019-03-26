@@ -1,0 +1,10 @@
+#!/bin/bash
+
+mkdir -p logs/circle/experiments
+mkdir -p logs/circle/training
+
+mkdir -p data/circle/experiments/figures
+mkdir -p data/circle/training_data
+mkdir -p data/circle/experiments
+mkdir -p data/circle/init_models
+mkdir -p data/circle/models
