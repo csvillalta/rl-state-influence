@@ -18,8 +18,8 @@ TIMESTR = time.strftime('%Y%m%d-%H%M%S')
 # Argument parser setup
 # TODO: expand parser
 parser = argparse.ArgumentParser()
-parser.add_argument("run_identifier", type=str)
-
+parser.add_argument('run_identifier', type=str)
+parser.add_argument('--n', type=int)
 args = parser.parse_args()
 
 # Logger setup
@@ -43,18 +43,11 @@ ACTION_SIZE = 4
 LEARNING_RATE = 0.001
 MEMORY_SIZE = 2000
 
-EPISODES = 15
-EXPLORE_EPISODES = 20
-STEPS = 100
-
 logger.debug('*** Run parameters ***')
 logger.debug('Observation size: {}'.format(OBSERVATION_SIZE))
 logger.debug('Action size: {}'.format(ACTION_SIZE))
 logger.debug('Learning rate: {}'.format(LEARNING_RATE))
 logger.debug('Memory size: {}'.format(MEMORY_SIZE))
-logger.debug('Episodes: {}'.format(EPISODES))
-logger.debug('Explore episodes: {}'.format(EXPLORE_EPISODES))
-logger.debug('Steps: {}'.format(STEPS))
 logger.debug('*'*30)
 
 ORACLE_MODEL_FILE = 'data/circle/models/base_run_20190324-225802_model.h5'
@@ -80,15 +73,21 @@ training_data = utils.load_data(ORACLE_MODEL_TRAINING_DATA, 'training')
 training_states = training_data[:, 0:2]
 training_targets = training_data[:, 2:6]
 
-# TODO: shuffle state order so plot in progress appears better
 unique_states, unique_counts = np.unique(training_states, axis=0, return_counts=True)
-# np.random.shuffle(unique_states) # shuffle rows so plot in progress plots points at random
+# shuffle order of states so that they appear nicely in plot during training
+u_states_counts = np.hstack((unique_states, np.reshape(unique_counts, (len(unique_counts), 1))))
+np.random.shuffle(u_states_counts)
+unique_states = u_states_counts[:,0:2]
+unique_counts = u_states_counts[:,2]
+
+if args.n:
+    unique_states = unique_states[:args.n]
+    unique_counts = unique_counts[:args.n]
 
 INFLUENCE_DATA_FILE = 'data/circle/experiments/{}_{}_data.h5'.format(args.run_identifier, TIMESTR)
 with h5py.File(INFLUENCE_DATA_FILE, 'a') as f:
     f.create_dataset('influence', (0, 4), maxshape=(None, 4))
 
-# Run experiment
 logger.info('*** Beginning experiment ***')
 
 state_influence = np.empty((len(unique_states), 4))
