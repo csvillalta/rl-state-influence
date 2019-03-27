@@ -15,7 +15,7 @@ class CircleEnv(object):
     An agent is tasked with finding and remaining within a circular area.
     """
 
-    def __init__(self, continuous=True):
+    def __init__(self, continuous=True, sparse=False):
         self.state = np.array([0, 0])
         self.actions = {
             0: np.array([0, 0.25]),
@@ -24,6 +24,7 @@ class CircleEnv(object):
             3: np.array([0.25, 0])
         }
         self.continuous = continuous
+        self.sparse = sparse
         self.observation_size = 2
         self.action_size = 4
         self.circle_center = np.array([0, 0])
@@ -45,8 +46,10 @@ class CircleEnv(object):
         if d <= self.circle_radius:
             return 1
         else:
-#             return 1/(1+d)**2
-            return 0
+            if self.sparse:
+                return 0
+            else:
+                return 1/(1+d)**2
 
     def _take_action(self, action):
         reward = self._get_reward()
@@ -75,7 +78,6 @@ class CircleEnv(object):
         ax.set_aspect('equal')
         plt.axis([-10 , 10, -10, 10])
 
-    # TODO: look into using matplotlib's built in animation tools
     def render(self):
         """Renders the agent at the current timestep on the plot."""
         if not self.render_initialized:
