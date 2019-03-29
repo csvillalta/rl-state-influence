@@ -50,7 +50,9 @@ TRAINING_DATA_FILE = 'data/circle/training_data/{}_{}_training_data.h5'.format(a
 MODEL_FILE = 'data/circle/models/{}_{}_model.h5'.format(args.run_identifier, TIMESTR)
 
 # Setup environment
-env = CircleEnv(continuous=True)
+env = CircleEnv(continuous=False, sparse=False)
+logger.debug('Environment continuous: {}'.format(env.continuous))
+logger.debug('Environment sparse: {}'.format(env.sparse))
 OBSERVATION_SIZE = env.observation_size
 ACTION_SIZE = env.action_size
 
@@ -64,6 +66,7 @@ else:
 agent.model = model
 agent.target_model = target_model
 agent.save_model('data/circle/init_models/{}_{}_init_model.h5'.format(args.run_identifier, TIMESTR))
+agent.save_target_model('data/circle/init_target_models/{}_{}_init_target_model.h5'.format(args.run_identifier, TIMESTR))
 
 logger.info(" *** Beginning training ***")
 logger.debug('='*30)
