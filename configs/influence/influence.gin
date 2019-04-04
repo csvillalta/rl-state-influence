@@ -1,0 +1,18 @@
+CircleEnv.continuous = False
+CircleEnv.sparse = False
+
+DQN.observation_size = 2
+DQN.action_size = 4
+DQN.model = @build_basic_network()
+DQN.target_model = @build_basic_network()
+DQN.memory_size = 2000
+DQN.batch_size = 20
+DQN.gamma = 0.99
+DQN.epsilon = 1
+DQN.epsilon_min = 0.05
+DQN.epsilon_decay = 0.99
+
+build_basic_network.observation_size = 2
+build_basic_network.action_size = 4
+build_basic_network.learning_rate = 0.001
+

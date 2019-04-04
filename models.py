@@ -1,7 +1,10 @@
+import gin
+
 from keras.layers import Dense
 from keras.models import Sequential
 from keras.optimizers import Adam
 
+@gin.configurable
 def build_basic_network(observation_size, action_size, learning_rate):
     """Builds a basic neural network architecture."""
     model = Sequential()

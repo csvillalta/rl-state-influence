@@ -1,91 +1,67 @@
 import numpy as np
-import h5py
+import pandas as pd
 
 def agent_accuracy(predicted_actions, optimal_actions):
-    return np.average(predicted_actions == optimal_actions)
+    return np.mean(predicted_actions == optimal_actions)
 
-def demo_agent(agent, env, episodes, steps, render=False):
+def demo_agent(agent, env, episodes, steps):
     for episode in range(episodes):
         state = env.reset()
-        state = np.reshape(state, (1, agent.observation_size))
         for step in range(steps):
-            if render:
-                env.render()
-            action = agent.act(state, act_optimal=True)
+            env.render()
+            action = agent.exploit(state)
             next_state, reward, done = env.step(action)
-            next_state = np.reshape(next_state, (1, agent.observation_size))
             state = next_state
-
-            if done or step == steps-1:
+            
+            if done or step==step-1:
                 break
+    env.close()
 
-# TODO: generalize this function beyond circle environment
+# TODO: Generalize this function beyond circle environment.
+# TODO: Optimize? It's only used once.
 def generate_agent_actions(agent, n):
     """Takes an agent and generates n optimal actions to n randomly generated states."""
-    states = np.random.uniform(low=-4, high=4, size=(n, 1, 2)) # each state needs to be 1x2 in order to input into a Keras model
-    agent_actions = np.empty((n,))
-    for i, state in enumerate(states):
-        agent_actions[i] = agent.act(state, act_optimal=True)
-    return states, agent_actions
+    start_coordinate = np.arange(-4, 4.1, 0.25)
+    states = np.random.choice(start_coordinate, size=(n, 2))
+    data = df_empty(['state_x', 'state_y', 'action'], [np.float16, np.float16, np.int8])
+    for state in states:
+        action = agent.exploit(state)
+        datum = pd.Series({'state_x': state[0], 
+                            'state_y': state[1], 
+                            'action': action})
+        data = data.append(datum, ignore_index=True)
+    return data
 
 def get_agent_actions(agent, states):
     """Returns optimal actions on a set of states for a given agent."""
-    agent_actions = np.empty((len(states,)))
-    for i, state in enumerate(states):
-        agent_actions[i] = agent.act(state, act_optimal=True)
-    return agent_actions
-                
-def load_data(data_file, data_type):
-    data = None
-    with h5py.File(data_file, 'r') as f:
-        d = f[data_type]
-        data = d[:]
-    return data
+    return states.apply(lambda s : agent.exploit(s.values), axis=1)
+S
+def df_empty(columns, dtypes, index=None):
+    """Creates an empty DataFrame with initial column names and types."""
+    assert len(columns)==len(dtypes)
+    df = pd.DataFrame(index=index)
+    for c, d in zip(columns, dtypes):
+        df[c] = pd.Series(dtype=d)
+    return df
 
-# TODO: check this function
-def remove_state(state, states, targets):
-    state_indices = np.where((states == state).all(axis=1))
-    return np.delete(states, state_indices, axis=0), np.delete(targets, state_indices, axis=0)
-                
-def train_agent(agent, env, episodes, explore_episodes, steps, model_file, training_data_file, render=False):
-    if explore_episodes:
-        for episode in range(explore_episodes):
-            state = env.reset()
-            state = np.reshape(state, [1, env.observation_size])
-            for step in range(steps):
-                if render: env.render()
-                action = agent.explore(state)
-                next_state, reward, done = env.step(action)
-                next_state = np.reshape(next_state, [1, env.observation_size])
-                agent.remember(state, action, reward, next_state, episode, step, done)
-                state = next_state
-
-                if done or step == steps-1:
-                    break
-
-    for episode in range(episodes):
-        state = env.reset()
-        state = np.reshape(state, [1, env.observation_size])
-        total_reward = 0
-        for step in range(steps):
-            if render: env.render()
-            action = agent.act(state)
-            next_state, reward, done = env.step(action)
-            total_reward += reward
-            next_state = np.reshape(next_state, [1, env.observation_size])
-            agent.remember(state, action, reward, next_state, episode, step, done)
-            state = next_state
-            agent.replay()
-
-            if done or step == steps-1:
-                print("Episode: {}/{}, Score: {:.2f}, e: {:.2f}".format(episode+1, episodes, total_reward, agent.epsilon*1.0))
-                break
-            if step % 50 == 0:
-                agent.update_target_model()
-
-        if episode % 10 == 0 and episode > 0:
-            if training_data_file: agent.save_training_data()
-            if model_file: agent.save_model(model_file)
-
-    if training_data_file: agent.save_training_data()
-    if model_file: agent.save_model(model_file)
+# TODO: Make this function more readable; remove magic numbers etc.
+def train_agent_offline(agent, training_data):
+    # Mimic minibatch training
+    batches = int(np.ceil(len(training_data)/20))
+    step = 18 # Start at 18 because training starts at 19 and we increment below.
+    # Update target model because it gets updated at step 10.
+    agent.update_target_model()
+    for i in range(batches):
+        start = i*20
+        end = (i+1)*20
+        batch = training_data[start: end]
+        for j, experience in enumerate(batch):
+            agent.replay_offline(experience)
+            
+        if step<24:
+            step += 1
+        else:
+            step = 0
+        
+        if step%10==0 and step>0:
+            agent.update_target_model()

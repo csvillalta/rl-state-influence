@@ -2,13 +2,14 @@
     File name: circle.py
     Author: Christopher Villalta
 """
-import logging
+import gin
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 from matplotlib.patches import Circle
 
+@gin.configurable
 class CircleEnv(object):
     """Circle reinforcement learning environment.
 
@@ -31,13 +32,17 @@ class CircleEnv(object):
         self.circle_radius = 1
         self.episode_length = 200
         self.steps = 0
-        self.agent_render_pos = None
-        self.render_initialized = False
+        self._agent_render_pos = None
+        self._render_initialized = False
 
     def step(self, action):
         self.steps += 1
         next_state, reward, done = self._take_action(action)
         return next_state, reward, done
+
+    def sample(self):
+        """Generate a random action."""
+        return np.random.randint(self.action_size)
 
     def _get_reward(self):
         x, y = self.state
@@ -62,7 +67,8 @@ class CircleEnv(object):
         if self.continuous:
             self.state = np.random.uniform(low=-4, high=4, size=2)
         else:
-            self.state = np.array((np.random.choice(np.arange(-4, 4.1, 0.25)), np.random.choice(np.arange(-4, 4.1, 0.25))))
+            start_coordinate = np.arange(-4.0, 4.1, 0.25)
+            self.state = np.random.choice(start_coordinate, size=(2,))
         self.steps = 0
         return self.state
 
@@ -72,26 +78,26 @@ class CircleEnv(object):
         """Initializes plot render with circle region and proper axis."""
         goal = plt.Circle((self.circle_center[0], self.circle_center[1]), self.circle_radius, color='blue', fill=False, linewidth=0.5)
         fig, ax = plt.subplots()
+        ax.set_aspect('equal')
         ax.set_xticks([])
         ax.set_yticks([])
         ax.add_artist(goal)
-        ax.set_aspect('equal')
-        plt.axis([-10 , 10, -10, 10])
+        plt.axis([-6 , 6, -6, 6])
 
     def render(self):
         """Renders the agent at the current timestep on the plot."""
-        if not self.render_initialized:
+        if not self._render_initialized:
             self._init_render()
-            self.render_initialized = True
+            self._render_initialized = True
         x, y = self.state
-        if self.agent_render_pos:
-            self.agent_render_pos = self.agent_render_pos.pop(0)
-            self.agent_render_pos.remove()
-        self.agent_render_pos = plt.plot([x], [y], marker='.', color='red')
+        if self._agent_render_pos:
+            self._agent_render_pos = self._agent_render_pos.pop(0)
+            self._agent_render_pos.remove()
+        self._agent_render_pos = plt.plot([x], [y], marker='.', color='red')
         plt.pause(0.0001)
 
     def close(self):
         """Closes the render."""
-        if self.render_initialized:
+        if self._render_initialized:
             plt.close()
-            self.render_initialized = False
+            self._render_initialized = False
