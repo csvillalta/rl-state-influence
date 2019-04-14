@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
 
-def agent_accuracy(predicted_actions, optimal_actions):
-    return np.mean(predicted_actions == optimal_actions)
+def agent_consistency(predicted_actions, optimal_actions):
+    consistency = np.mean(np.array(predicted_actions) == np.array(optimal_actions))
+    return consistency
 
 def demo_agent(agent, env, episodes, steps):
     for episode in range(episodes):
@@ -35,7 +36,7 @@ def generate_agent_actions(agent, n):
 def get_agent_actions(agent, states):
     """Returns optimal actions on a set of states for a given agent."""
     return states.apply(lambda s : agent.exploit(s.values), axis=1)
-S
+
 def df_empty(columns, dtypes, index=None):
     """Creates an empty DataFrame with initial column names and types."""
     assert len(columns)==len(dtypes)
@@ -48,20 +49,19 @@ def df_empty(columns, dtypes, index=None):
 def train_agent_offline(agent, training_data):
     # Mimic minibatch training
     batches = int(np.ceil(len(training_data)/20))
-    step = 18 # Start at 18 because training starts at 19 and we increment below.
+    step = 0 # Start at 18 because training starts at 19 and we increment below.
     # Update target model because it gets updated at step 10.
-    agent.update_target_model()
     for i in range(batches):
         start = i*20
         end = (i+1)*20
         batch = training_data[start: end]
         for j, experience in enumerate(batch):
             agent.replay_offline(experience)
+        
+        if step%10==0 and step>0:
+            agent.update_target_model()
             
         if step<24:
             step += 1
         else:
             step = 0
-        
-        if step%10==0 and step>0:
-            agent.update_target_model()

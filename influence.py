@@ -1,0 +1,69 @@
+import gin
+import numpy as np
+import pandas as pd
+import time
+
+import models
+import utils
+
+from dqn import DQN
+from circle import CircleEnv
+
+# Load configuration for DQN and model
+gin.parse_config_file('configs/influence/influence.gin')
+
+def influence(state, training_data, test_data, oracle_init_model, oracle_init_target_model, filename):
+    """Calculate the influence of a state with respect to the training data. Returns all influences for each state occurence."""
+    # We drop duplicates, because a specific state at a specific episode and step can be reused several times...
+    state_occurences = training_data[(training_data['state_x'] == state['state_x']) & 
+                                     (training_data['state_y'] == state['state_y'])].drop_duplicates()
+
+    # Array to hold our state/influence pairs.
+    state_influences = np.empty((len(state_occurences), 7))
+
+    count = 0
+    for _, state_occurence in state_occurences.iterrows():
+        start_time = time.time()
+        episode, step = state_occurence['episode'], state_occurence['step']
+        
+        occurences = len(training_data[(training_data.state_x == state_occurence.state_x) & 
+                                  (training_data.state_y == state_occurence.state_y) & 
+                                  (training_data.episode == episode) & 
+                                  (training_data.step == step)])
+        
+        # Every state except those that occurs on or after the above step during the above episode.
+        # theta_X/E
+        full_trace = training_data[(training_data['episode'] != episode) | 
+                          (training_data['step'] < step)]
+        
+        # Every state except those that occur after the above step during the above episode.
+        # theta_X/F
+        partial_trace = training_data[(training_data['episode'] != episode) | 
+                             (training_data['step'] <= step)]
+
+        # Setup our two agents to train on each of the filtered training sets above.
+        ft_agent = DQN()
+        ft_agent.model.load_weights(oracle_init_model)
+        ft_agent.target_model.load_weights(oracle_init_target_model)     
+        pt_agent = DQN()
+        pt_agent.model.load_weights(oracle_init_model)
+        pt_agent.target_model.load_weights(oracle_init_target_model)
+
+        # Train our agents, get their optimal actions on testing data, and get consistencies.
+        utils.train_agent_offline(ft_agent, full_trace.to_numpy())
+        utils.train_agent_offline(pt_agent, partial_trace.to_numpy())     
+        ft_agent_actions = utils.get_agent_actions(ft_agent, test_data[['state_x', 'state_y']])
+        pt_agent_actions = utils.get_agent_actions(pt_agent, test_data[['state_x', 'state_y']])
+        ft_agent_acc = utils.agent_consistency(ft_agent_actions, test_data['action'].to_numpy())
+        pt_agent_acc = utils.agent_consistency(pt_agent_actions, test_data['action'].to_numpy())
+        
+        # TODO: Carefully consider what we wish to have saved and how we name our save files...
+        # Idea: state_x, state_y, episode, step, pt_agent_acc, ft_agent_acc, 
+        state_influences[count] = np.array((state_occurence['state_x'], state_occurence['state_y'], episode, step, pt_agent_acc, ft_agent_acc, occurences), dtype=np.float64)
+        count += 1
+        print("Time elapsed for one loop iteration: {}".format(time.time()-start_time))
+    
+    data = pd.DataFrame(state_influences, columns=['state_x', 'state_y', 'episode', 'step', 'pt_agent_cons', 'ft_agent_cons', 'occurences'])
+    if filename:
+        data.to_pickle(filename)
+    return data

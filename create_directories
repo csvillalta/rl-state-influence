@@ -9,3 +9,6 @@ mkdir -p data/circle/experiments
 mkdir -p data/circle/init_models
 mkdir -p data/circle/init_target_models
 mkdir -p data/circle/models
+mkdir -p data/circle/test_data
+mkdir -p data/circle/experiments/influences
+mkdir -p data/circle/experiments/training_data_splits
