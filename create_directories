@@ -12,3 +12,4 @@ mkdir -p data/circle/models
 mkdir -p data/circle/test_data
 mkdir -p data/circle/experiments/influences
 mkdir -p data/circle/experiments/training_data_splits
+mkdir -p data/circle/experiments/models
