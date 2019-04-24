@@ -101,3 +101,10 @@ class CircleEnv(object):
         if self._render_initialized:
             plt.close()
             self._render_initialized = False
+
+    def action_to_vec(actions):
+        """Take a list of action indices and convert to their vector counterpart."""
+        vector_actions = np.empty((len(actions), 2))
+        for i, action in enumerate(actions):
+            vector_actions[i] = self.actions[action]
+        return vector_actions

@@ -14,3 +14,12 @@ def build_basic_network(observation_size, action_size, learning_rate):
     model.compile(loss='mse', optimizer=Adam(lr=learning_rate))
     return model
     
+@gin.configurable
+def simple_network(observation_size, action_size, learning_rate):
+    """Builds a basic neural network architecture."""
+    model = Sequential()
+    model.add(Dense(10, input_dim=observation_size, activation='relu'))
+    model.add(Dense(10, activation='relu'))
+    model.add(Dense(action_size, activation='linear'))
+    model.compile(loss='mse', optimizer=Adam(lr=learning_rate))
+    return model

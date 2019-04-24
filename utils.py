@@ -33,9 +33,16 @@ def generate_agent_actions(agent, n):
         data = data.append(datum, ignore_index=True)
     return data
 
+# TODO: Should look to vectorize this operation.
 def get_agent_actions(agent, states):
     """Returns optimal actions on a set of states for a given agent."""
-    return states.apply(lambda s : agent.exploit(s.values), axis=1)
+    actions = np.empty(len(states))
+    for i, state in enumerate(states):
+        actions[i] = agent.exploit(state)
+    return actions
+
+def get_q_values(model, states):
+    return model.predict(states)
 
 def df_empty(columns, dtypes, index=None):
     """Creates an empty DataFrame with initial column names and types."""

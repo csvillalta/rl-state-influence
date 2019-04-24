@@ -95,7 +95,7 @@ class DQN(object):
         
     def save_training_data(self, file_name):
         data = pd.DataFrame(self.training_data, columns=['state_x', 'state_y', 'action', 'reward', 'next_state_x', 'next_state_y', 'episode', 'step', 'done'])
-        data.to_hdf(file_name, key='training')
+        data.to_pickle(file_name)
 
     def update_target_model(self):
         self.target_model.set_weights(self.model.get_weights())
