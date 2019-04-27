@@ -13,7 +13,7 @@ from circle import CircleEnv
 # Load configuration for DQN and model
 gin.parse_config_file('configs/influence/influence.gin')
 
-def influence(state, training_data, test_data, oracle_init_model, oracle_init_target_model, filename):
+def influence(state, training_data, test_data, oracle_init_model, oracle_init_target_model, file_prefix):
     """Calculate the influence of a state with respect to the training data. Returns all influences for each state occurence."""
     # We drop duplicates, because a specific state at a specific episode and step can be reused several times
     state_occurences = training_data[(training_data['state_x'] == state['state_x']) & 
@@ -52,11 +52,13 @@ def influence(state, training_data, test_data, oracle_init_model, oracle_init_ta
 
         # Train our agents, get their optimal actions on testing data, and get consistencies.
         utils.train_agent_offline(ft_agent, full_trace.to_numpy())
-        utils.train_agent_offline(pt_agent, partial_trace.to_numpy())     
-        ft_agent_actions = utils.get_agent_actions(ft_agent, test_data[['state_x', 'state_y']])
-        pt_agent_actions = utils.get_agent_actions(pt_agent, test_data[['state_x', 'state_y']])
-        ft_agent_acc = utils.agent_consistency(ft_agent_actions, test_data['action'].to_numpy())
-        pt_agent_acc = utils.agent_consistency(pt_agent_actions, test_data['action'].to_numpy())
+        utils.train_agent_offline(pt_agent, partial_trace.to_numpy())
+        ft_q_values = utils.get_q_values(ft_agent.model, training_data[['state_x', 'state_y']].drop_duplicates().to_numpy())
+        pt_q_values = utils.get_q_values(pt_agent.model, training_data[['state_x', 'state_y']].drop_duplicates().to_numpy())
+        ft_agent_actions = np.argmax(ft_q_values, axis=1)
+        pt_agent_actions = np.argmax(pt_q_values, axis=1)
+        ft_agent_acc = utils.agent_consistency(ft_agent_actions, training_data[['state_x', 'state_y']].drop_duplicates())
+        pt_agent_acc = utils.agent_consistency(pt_agent_actions, training_data[['state_x', 'state_y']].drop_duplicates())
         
         # TODO: Carefully consider what we wish to have saved and how we name our save files...
         # Idea: state_x, state_y, episode, step, pt_agent_acc, ft_agent_acc, 
@@ -65,8 +67,8 @@ def influence(state, training_data, test_data, oracle_init_model, oracle_init_ta
         print("Time elapsed for one loop iteration: {}".format(time.time()-start_time))
     
     data = pd.DataFrame(state_influences, columns=['state_x', 'state_y', 'episode', 'step', 'pt_agent_cons', 'ft_agent_cons', 'occurences'])
-    if filename:
-        data.to_pickle(filename)
+    if file_prefix:
+        data.to_pickle('data/circle/experiments/influences_v1/infl_'+file_prefix+'.pkl')
     return data
 
 
