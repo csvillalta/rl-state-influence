@@ -57,8 +57,8 @@ def influence(state, training_data, test_data, oracle_init_model, oracle_init_ta
         pt_q_values = utils.get_q_values(pt_agent.model, training_data[['state_x', 'state_y']].drop_duplicates().to_numpy())
         ft_agent_actions = np.argmax(ft_q_values, axis=1)
         pt_agent_actions = np.argmax(pt_q_values, axis=1)
-        ft_agent_acc = utils.agent_consistency(ft_agent_actions, training_data[['state_x', 'state_y']].drop_duplicates())
-        pt_agent_acc = utils.agent_consistency(pt_agent_actions, training_data[['state_x', 'state_y']].drop_duplicates())
+        ft_agent_acc = utils.agent_consistency(ft_agent_actions, test_data['action'].to_numpy())
+        pt_agent_acc = utils.agent_consistency(pt_agent_actions, test_data['action'].to_numpy())
         
         # TODO: Carefully consider what we wish to have saved and how we name our save files...
         # Idea: state_x, state_y, episode, step, pt_agent_acc, ft_agent_acc, 
